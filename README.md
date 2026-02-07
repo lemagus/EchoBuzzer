@@ -12,13 +12,13 @@ docker compose up --build
 
 2. Accès
 
-- Clients: `http://<MAC_IP>:8081/` (modifiable via `CLIENTS_HOST_PORT`)
-- Admin: `http://<MAC_IP>:8082/admin` (modifiable via `ADMIN_HOST_PORT`)
-- WebSocket (Reverb): `ws://<MAC_IP>:8080` (modifiable via `REVERB_HOST_PORT`)
+- Clients: `http://<MAC_IP>:8086/` (modifiable via `CLIENTS_HOST_PORT`)
+- Admin: `http://<MAC_IP>:8087/admin` (modifiable via `ADMIN_HOST_PORT`)
+- WebSocket (Reverb): `ws://<MAC_IP>:8085` (modifiable via `REVERB_HOST_PORT`)
 
 Pour un test local:
-- Clients: `http://localhost:8081/`
-- Admin: `http://localhost:8082/admin`
+- Clients: `http://localhost:8086/`
+- Admin: `http://localhost:8087/admin`
 
 ## Trouver l'IP du Mac (LAN)
 
@@ -38,7 +38,7 @@ ifconfig | grep -A2 "en0" | grep "inet "
 
 - Si un iPhone ne se connecte pas:
   - Vérifier que macOS Firewall autorise Docker.
-  - Vérifier que les ports `8080`, `8081`, `8082` sont accessibles sur le LAN.
+- Vérifier que les ports `8085`, `8086`, `8087` sont accessibles sur le LAN.
 - Le WebSocket doit être joignable sur `REVERB_HOST_PORT`.
 - L'admin a besoin du token `ADMIN_TOKEN` (défaut: `change-me`).
 
@@ -66,10 +66,10 @@ Variables clés:
 - `CORS_ALLOWED_ORIGINS`
 - `REVERB_ALLOWED_ORIGINS`
 - `VITE_REVERB_HOST` (laisser vide pour utiliser `window.location.hostname`)
-- `VITE_REVERB_PORT=8080` (doit correspondre au port hôte Reverb)
-- `REVERB_HOST_PORT=8080` (port hôte Docker pour éviter un conflit local)
-- `CLIENTS_HOST_PORT=8081` (port hôte Docker pour les clients)
-- `ADMIN_HOST_PORT=8082` (port hôte Docker pour l'admin)
+- `VITE_REVERB_PORT=8085` (doit correspondre au port hôte Reverb)
+- `REVERB_HOST_PORT=8085` (port hôte Docker pour éviter un conflit local)
+- `CLIENTS_HOST_PORT=8086` (port hôte Docker pour les clients)
+- `ADMIN_HOST_PORT=8087` (port hôte Docker pour l'admin)
 
 ## Checklist de test
 
