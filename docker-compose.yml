@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: echo-buzzer-app
+    volumes:
+      - ./:/var/www
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: ${APP_URL:-http://localhost:8081}
+      BROADCAST_CONNECTION: reverb
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: sync
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - redis
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: echo-buzzer-nginx
+    ports:
+      - "${CLIENTS_HOST_PORT:-8081}:80"
+      - "${ADMIN_HOST_PORT:-8082}:81"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  redis:
+    image: redis:7-alpine
+    container_name: echo-buzzer-redis
+
+  reverb:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: echo-buzzer-reverb
+    command: ["sh", "-c", "until [ -f /var/www/artisan ]; do sleep 2; done; php artisan reverb:start --host=0.0.0.0 --port=8080"]
+    ports:
+      - "${REVERB_HOST_PORT:-8080}:8080"
+    volumes:
+      - ./:/var/www
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: ${APP_URL:-http://localhost:8081}
+      BROADCAST_CONNECTION: reverb
+      CACHE_STORE: redis
+      QUEUE_CONNECTION: sync
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      - app
+      - redis
+
+  node:
+    image: node:20-alpine
+    container_name: echo-buzzer-node
+    working_dir: /var/www
+    command: ["sh", "-c", "until [ -f /var/www/package.json ]; do sleep 2; done; npm install && npm run build && tail -f /dev/null"]
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - app
