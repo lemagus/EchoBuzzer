@@ -25,7 +25,5 @@ window.Echo = new Echo({
   wsPort: port,
   wssPort: port,
   forceTLS: isSecure,
-  enabledTransports: ['ws', 'wss'],
-  disabledTransports: ['xhr_streaming', 'xhr_polling', 'sockjs'],
   disableStats: true,
 });
