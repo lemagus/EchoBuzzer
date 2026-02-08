@@ -12,6 +12,7 @@ const port = Number(
     window.__REVERB_PORT__ ||
     8080
 );
+const isSecure = window.location.protocol === 'https:';
 const key =
   import.meta.env.VITE_REVERB_APP_KEY ||
   window.__REVERB_APP_KEY__ ||
@@ -23,7 +24,6 @@ window.Echo = new Echo({
   wsHost: host,
   wsPort: port,
   wssPort: port,
-  forceTLS: false,
-  enabledTransports: ['ws'],
+  forceTLS: isSecure,
   disableStats: true,
 });
