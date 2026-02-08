@@ -53,6 +53,8 @@ LUA;
     {
         $this->deleteAllRounds();
         Redis::set('buzz:round_id', 1);
+        // Ensure round 1 keys are clean after reset
+        $this->cleanupRound(1);
         return $this->buildState(1);
     }
 
@@ -117,10 +119,14 @@ LUA;
 
     private function deleteAllRounds(): void
     {
-        $keys = Redis::keys('buzz:round:*');
-        if (!empty($keys)) {
-            Redis::del($keys);
-        }
+        $cursor = 0;
+        do {
+            [$cursor, $keys] = Redis::scan($cursor, 'MATCH', 'buzz:round:*', 'COUNT', 200);
+            if (!empty($keys)) {
+                Redis::del($keys);
+            }
+        } while ($cursor !== 0);
+
         Redis::del('buzz:round_id');
     }
 
