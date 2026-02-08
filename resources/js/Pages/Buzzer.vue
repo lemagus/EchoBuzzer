@@ -221,9 +221,11 @@ const handleState = (payload) => {
   state.value = payload;
   debugInfo.value.lastEvent = `round:${payload.roundId} presses:${payload.presses.length}`;
 
-  if (payload.roundId !== previousRound && payload.presses.length === 0) {
+  if (payload.presses.length === 0) {
     pressed.value = false;
     isWinner.value = false;
+  } else if (!payload.presses.some((p) => p.clientId === clientId.value)) {
+    pressed.value = false;
   }
 
   isWinner.value = payload.winnerClientId === clientId.value;
