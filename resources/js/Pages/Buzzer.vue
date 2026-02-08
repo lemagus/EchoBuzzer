@@ -71,6 +71,7 @@ const state = ref({ roundId: 1, presses: [], winnerClientId: null });
 
 const audioCtx = ref(null);
 const isAudioPrimed = ref(false);
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 const debug = ref(false);
 const debugTaps = ref(0);
 const debugInfo = ref({
@@ -224,6 +225,7 @@ const handleState = (payload) => {
 const fetchState = async () => {
   const { data } = await axios.get('/api/buzz/state');
   handleState(data);
+  if (isIOS) connected.value = true;
 };
 
 const handlePress = async () => {
@@ -259,40 +261,42 @@ onMounted(async () => {
 
   await fetchState();
 
-  const channel = window.Echo?.channel('buzz');
-  channel?.listen('.buzz.state', (payload) => {
-    connected.value = true;
-    handleState(payload);
-  });
-  channel?.subscribed(() => {
-    connected.value = true;
-    fetchState();
-  });
-
-  const connection = window.Echo?.connector?.pusher?.connection;
-  if (connection) {
-    connected.value = connection.state === 'connected';
-    debugInfo.value.state = connection.state;
-    connection.bind('state_change', (states) => {
-      connected.value = states.current === 'connected';
-      debugInfo.value.state = states.current;
-      if (connected.value) {
-        fetchState();
-      }
-    });
-    connection.bind('connected', () => {
+  if (!isIOS) {
+    const channel = window.Echo?.channel('buzz');
+    channel?.listen('.buzz.state', (payload) => {
       connected.value = true;
-      debugInfo.value.state = 'connected';
+      handleState(payload);
+    });
+    channel?.subscribed(() => {
+      connected.value = true;
       fetchState();
     });
-    connection.bind('disconnected', () => {
-      connected.value = false;
-      debugInfo.value.state = 'disconnected';
-    });
-    connection.bind('error', (err) => {
-      connected.value = false;
-      debugInfo.value.errors = JSON.stringify(err?.error || err);
-    });
+
+    const connection = window.Echo?.connector?.pusher?.connection;
+    if (connection) {
+      connected.value = connection.state === 'connected';
+      debugInfo.value.state = connection.state;
+      connection.bind('state_change', (states) => {
+        connected.value = states.current === 'connected';
+        debugInfo.value.state = states.current;
+        if (connected.value) {
+          fetchState();
+        }
+      });
+      connection.bind('connected', () => {
+        connected.value = true;
+        debugInfo.value.state = 'connected';
+        fetchState();
+      });
+      connection.bind('disconnected', () => {
+        connected.value = false;
+        debugInfo.value.state = 'disconnected';
+      });
+      connection.bind('error', (err) => {
+        connected.value = false;
+        debugInfo.value.errors = JSON.stringify(err?.error || err);
+      });
+    }
   }
 
   window.addEventListener(
@@ -309,13 +313,19 @@ onMounted(async () => {
     }
   }, 3000);
 
-  setInterval(() => {
-    const conn = window.Echo?.connector?.pusher?.connection;
-    if (conn) {
-      connected.value = conn.state === 'connected';
-      debugInfo.value.state = conn.state;
-    }
-  }, 1000);
+  if (!isIOS) {
+    setInterval(() => {
+      const conn = window.Echo?.connector?.pusher?.connection;
+      if (conn) {
+        connected.value = conn.state === 'connected';
+        debugInfo.value.state = conn.state;
+      }
+    }, 1000);
+  } else {
+    setInterval(() => {
+      fetchState();
+    }, 1000);
+  }
 
   debugInfo.value.origin = window.location.origin;
   debugInfo.value.wsHost = window.Echo?.connector?.pusher?.config?.wsHost || 'n/a';

@@ -82,6 +82,7 @@ import axios from 'axios';
 const adminToken = ref('');
 const connected = ref(false);
 const state = ref({ roundId: 1, presses: [], winnerClientId: null });
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
 const saveToken = () => {
   if (adminToken.value.trim()) {
@@ -98,6 +99,7 @@ const formatDelta = (deltaMs) => {
 const fetchState = async () => {
   const { data } = await axios.get('/api/buzz/state');
   state.value = data;
+  if (isIOS) connected.value = true;
 };
 
 const resetRound = async () => {
@@ -128,31 +130,33 @@ onMounted(async () => {
   adminToken.value = localStorage.getItem('buzz:admin_token') || '';
   await fetchState();
 
-  const channel = window.Echo?.channel('buzz');
-  channel?.listen('.buzz.state', (payload) => {
-    connected.value = true;
-    state.value = payload;
-  });
-  channel?.subscribed(() => {
-    connected.value = true;
-    fetchState();
-  });
-
-  const connection = window.Echo?.connector?.pusher?.connection;
-  if (connection) {
-    connected.value = connection.state === 'connected';
-    connection.bind('state_change', (states) => {
-      connected.value = states.current === 'connected';
-      if (connected.value) {
-        fetchState();
-      }
+  if (!isIOS) {
+    const channel = window.Echo?.channel('buzz');
+    channel?.listen('.buzz.state', (payload) => {
+      connected.value = true;
+      state.value = payload;
     });
-    connection.bind('connected', () => {
+    channel?.subscribed(() => {
       connected.value = true;
       fetchState();
     });
-    connection.bind('disconnected', () => (connected.value = false));
-    connection.bind('error', () => (connected.value = false));
+
+    const connection = window.Echo?.connector?.pusher?.connection;
+    if (connection) {
+      connected.value = connection.state === 'connected';
+      connection.bind('state_change', (states) => {
+        connected.value = states.current === 'connected';
+        if (connected.value) {
+          fetchState();
+        }
+      });
+      connection.bind('connected', () => {
+        connected.value = true;
+        fetchState();
+      });
+      connection.bind('disconnected', () => (connected.value = false));
+      connection.bind('error', () => (connected.value = false));
+    }
   }
 
   setInterval(() => {
@@ -161,11 +165,17 @@ onMounted(async () => {
     }
   }, 3000);
 
-  setInterval(() => {
-    const conn = window.Echo?.connector?.pusher?.connection;
-    if (conn) {
-      connected.value = conn.state === 'connected';
-    }
-  }, 1000);
+  if (!isIOS) {
+    setInterval(() => {
+      const conn = window.Echo?.connector?.pusher?.connection;
+      if (conn) {
+        connected.value = conn.state === 'connected';
+      }
+    }, 1000);
+  } else {
+    setInterval(() => {
+      fetchState();
+    }, 1000);
+  }
 });
 </script>
