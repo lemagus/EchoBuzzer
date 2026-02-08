@@ -3,7 +3,10 @@
     <div class="mx-auto flex min-h-screen max-w-sm flex-col px-4 py-6">
       <div class="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
         <div class="flex items-center justify-between">
-          <div class="text-lg font-semibold">BuzzAdmin</div>
+          <div>
+            <div class="text-lg font-semibold">BuzzAdmin</div>
+            <div class="text-xs text-white/50">Round #{{ state.roundId }}</div>
+          </div>
           <div class="text-xs" :class="connected ? 'text-emerald-300' : 'text-amber-300'">
             {{ connected ? 'Live' : 'Offline' }}
           </div>
