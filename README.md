@@ -71,6 +71,33 @@ Variables clés:
 - `CLIENTS_HOST_PORT=8086` (port hôte Docker pour les clients)
 - `ADMIN_HOST_PORT=8087` (port hôte Docker pour l'admin)
 
+## Mode "Event" vs Mode "Prod"
+
+### Mode "Event" (IP + HTTP, usage ponctuel)
+Recommandé pour une fête sur IP publique/privée sans HTTPS. Le WebSocket est parfois strict sur l'Origin, donc on laisse Reverb en `*` pour éviter les refus.
+
+```
+REVERB_ALLOWED_ORIGINS=*
+CORS_ALLOWED_ORIGINS=http://<IP>:8086,http://<IP>:8087
+```
+
+### Mode "Prod" (domaine + HTTPS, usage public)
+Recommandé pour un usage public durable. Active un reverse proxy HTTPS (Caddy/Nginx) et restreins strictement les origins.
+
+```
+APP_URL=https://example.com
+REVERB_SCHEME=https
+VITE_REVERB_HOST=example.com
+VITE_REVERB_PORT=443
+REVERB_HOST_PORT=443
+REVERB_ALLOWED_ORIGINS=https://example.com
+CORS_ALLOWED_ORIGINS=https://example.com
+```
+
+Notes:
+- Le WebSocket (Reverb) n'utilise pas CORS, il se base uniquement sur `REVERB_ALLOWED_ORIGINS`.
+- En mode IP + HTTP, il est fréquent que l'Origin envoyé par le navigateur ne corresponde pas exactement à ce qui est attendu.
+
 ## Checklist de test
 
 1. Ouvrir 2 onglets ou 2 téléphones sur `/` et saisir des noms différents.

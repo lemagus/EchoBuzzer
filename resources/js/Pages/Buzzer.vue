@@ -8,9 +8,9 @@
             {{ connected ? 'Live' : 'Offline' }}
           </span>
         </div>
-        <div class="mt-6 text-center text-3xl font-bold uppercase tracking-[0.18em]">
+        <button class="mt-6 text-center text-3xl font-bold uppercase tracking-[0.18em] w-full" @click="tapDebug">
           {{ displayName }}
-        </div>
+        </button>
         <div class="mt-6">
           <label class="text-xs uppercase tracking-[0.25em] text-white/50">Nom</label>
           <input
@@ -42,6 +42,16 @@
         Round #{{ state.roundId }}
       </div>
 
+      <div v-if="debug" class="mt-4 rounded-2xl border border-white/10 bg-white/5 p-3 text-[11px] text-white/80">
+        <div><span class="text-white/50">origin:</span> {{ debugInfo.origin }}</div>
+        <div><span class="text-white/50">wsHost:</span> {{ debugInfo.wsHost }}</div>
+        <div><span class="text-white/50">wsPort:</span> {{ debugInfo.wsPort }}</div>
+        <div><span class="text-white/50">state:</span> {{ debugInfo.state }}</div>
+        <div><span class="text-white/50">lastEvent:</span> {{ debugInfo.lastEvent }}</div>
+        <div><span class="text-white/50">errors:</span> {{ debugInfo.errors }}</div>
+        <div class="mt-2 text-white/40">Tape 5x sur "PLAYER" pour activer/désactiver.</div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -61,6 +71,16 @@ const state = ref({ roundId: 1, presses: [], winnerClientId: null });
 
 const audioCtx = ref(null);
 const isAudioPrimed = ref(false);
+const debug = ref(false);
+const debugTaps = ref(0);
+const debugInfo = ref({
+  origin: '',
+  wsHost: '',
+  wsPort: '',
+  state: '',
+  lastEvent: 'n/a',
+  errors: 'n/a',
+});
 
 const isLocked = computed(() => {
   if (pressed.value) return true;
@@ -187,6 +207,7 @@ const handleState = (payload) => {
   const previousRound = state.value.roundId;
   const wasWinner = isWinner.value;
   state.value = payload;
+  debugInfo.value.lastEvent = `round:${payload.roundId} presses:${payload.presses.length}`;
 
   if (payload.roundId !== previousRound && payload.presses.length === 0) {
     pressed.value = false;
@@ -251,18 +272,27 @@ onMounted(async () => {
   const connection = window.Echo?.connector?.pusher?.connection;
   if (connection) {
     connected.value = connection.state === 'connected';
+    debugInfo.value.state = connection.state;
     connection.bind('state_change', (states) => {
       connected.value = states.current === 'connected';
+      debugInfo.value.state = states.current;
       if (connected.value) {
         fetchState();
       }
     });
     connection.bind('connected', () => {
       connected.value = true;
+      debugInfo.value.state = 'connected';
       fetchState();
     });
-    connection.bind('disconnected', () => (connected.value = false));
-    connection.bind('error', () => (connected.value = false));
+    connection.bind('disconnected', () => {
+      connected.value = false;
+      debugInfo.value.state = 'disconnected';
+    });
+    connection.bind('error', (err) => {
+      connected.value = false;
+      debugInfo.value.errors = JSON.stringify(err?.error || err);
+    });
   }
 
   window.addEventListener(
@@ -283,9 +313,22 @@ onMounted(async () => {
     const conn = window.Echo?.connector?.pusher?.connection;
     if (conn) {
       connected.value = conn.state === 'connected';
+      debugInfo.value.state = conn.state;
     }
   }, 1000);
+
+  debugInfo.value.origin = window.location.origin;
+  debugInfo.value.wsHost = window.Echo?.connector?.pusher?.config?.wsHost || 'n/a';
+  debugInfo.value.wsPort = window.Echo?.connector?.pusher?.config?.wsPort || 'n/a';
 });
+
+const tapDebug = () => {
+  debugTaps.value += 1;
+  if (debugTaps.value >= 5) {
+    debug.value = !debug.value;
+    debugTaps.value = 0;
+  }
+};
 
 const primeAudio = async () => {
   if (!isAudioPrimed.value) {
