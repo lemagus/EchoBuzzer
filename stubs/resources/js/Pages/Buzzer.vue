@@ -3,7 +3,7 @@
     <div class="mx-auto flex min-h-[100dvh] max-w-md flex-col px-5 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-[calc(env(safe-area-inset-top)+24px)]">
       <div class="rounded-[38px] border border-white/10 bg-white/5 px-6 py-7 shadow-[0_30px_80px_rgba(10,10,40,0.6)] backdrop-blur">
         <div class="flex items-center justify-between text-[10px] uppercase tracking-[0.35em] text-white/60">
-          <span>Player</span>
+          <span>Joueur</span>
           <span :class="connected ? 'text-emerald-300' : 'text-amber-300'">
             {{ connected ? 'Live' : 'Offline' }}
           </span>
@@ -49,7 +49,7 @@
         <div><span class="text-white/50">state:</span> {{ debugInfo.state }}</div>
         <div><span class="text-white/50">lastEvent:</span> {{ debugInfo.lastEvent }}</div>
         <div><span class="text-white/50">errors:</span> {{ debugInfo.errors }}</div>
-        <div class="mt-2 text-white/40">Tape 5x sur "PLAYER" pour activer/désactiver.</div>
+        <div class="mt-2 text-white/40">Tape 5x sur \"JOUEUR\" pour activer/désactiver.</div>
       </div>
     </div>
   </div>
@@ -61,6 +61,7 @@ import axios from 'axios';
 
 const nameInput = ref(null);
 const name = ref('');
+const defaultName = ref('');
 const clientId = ref('');
 const pressed = ref(false);
 const isWinner = ref(false);
@@ -88,7 +89,7 @@ const isLocked = computed(() => {
 
 const displayName = computed(() => {
   const current = name.value.trim();
-  return (current || 'PLAYER ONE').toUpperCase();
+  return (current || defaultName.value || 'JOUEUR').toUpperCase();
 });
 
 const buttonClass = computed(() => {
@@ -193,6 +194,16 @@ const saveName = () => {
   }
 };
 
+const ensureDefaultName = () => {
+  let stored = localStorage.getItem('buzz:default_name');
+  if (!stored) {
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    stored = `JOUEUR ${rand}`;
+    localStorage.setItem('buzz:default_name', stored);
+  }
+  defaultName.value = stored;
+};
+
 const loadClientId = () => {
   let id = localStorage.getItem('buzz:client_id');
   if (!id) {
@@ -230,10 +241,8 @@ const handlePress = async () => {
   await ensureAudio();
 
   if (!name.value.trim()) {
-    nameError.value = true;
-    nameInput.value?.focus();
-    setTimeout(() => (nameError.value = false), 600);
-    return;
+    name.value = defaultName.value || 'JOUEUR';
+    saveName();
   }
 
   pressed.value = true;
@@ -254,6 +263,7 @@ const handlePress = async () => {
 
 onMounted(async () => {
   loadClientId();
+  ensureDefaultName();
   name.value = localStorage.getItem('buzz:name') || '';
 
   await fetchState();
